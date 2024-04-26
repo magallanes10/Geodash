@@ -5,7 +5,8 @@ const router = express.Router();
 router.get('/player', async (req, res) => {
     try {
         const user = req.query.user;
-        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'; // User-Agent header to mimic Mozilla browser
+        const userAgent = 'Mozilla/5.0';
+ // User-Agent header to mimic Mozilla browser
 
         // Make GET request to the external API
         const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/playerStatsBot.php?player=${user}`, {
