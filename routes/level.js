@@ -1,12 +1,12 @@
 const express = require('express');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const router = express.Router();
 
 router.get('/levelinfo', async (req, res) => {
     try {
         const level = req.query.level;
         const userAgent = 'Mozilla/5.0';
-      // User-Agent header to mimic Mozilla browser
 
         // Make GET request to the external API
         const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/levelSearchBot.php?str=${level}`, {
@@ -15,11 +15,48 @@ router.get('/levelinfo', async (req, res) => {
             }
         });
 
-        // Extract specific information from the response
-        const levelInfo = extractLevelInfo(response.data);
+        // Parse HTML response using Cheerio
+        const $ = cheerio.load(response.data);
 
-        // Send the level information as JSON response
-        res.json(levelInfo);
+        // Extract name field
+        const name = $('**').filter((index, element) => $(element).text().includes('NAME')).text().split(':')[1]?.trim().replace(/\*/g, '');
+
+        // Extract specific information from the response using Cheerio
+        const levelInfo = {};
+        $('**').each((index, element) => {
+            const key = $(element).text().split(':')[0].trim();
+            const value = $(element).text().split(':')[1]?.trim().replace(/\*/g, '');
+            if (key && value && key !== 'SHOWING RESULT FOR' && key !== 'Rated by' && key !== 'OBJECTS') {
+                levelInfo[key] = value;
+            }
+        });
+
+        // Extract additional information using the extractLevelInfo function
+        const additionalInfo = extractLevelInfo(response.data);
+
+        // Merge the two sets of information
+        const mergedInfo = { ...levelInfo, ...additionalInfo };
+
+        // Adjust the JSON format
+        const modifiedInfo = {
+            name: name,
+            ID: mergedInfo["ID"],
+            Author: mergedInfo["Author"],
+            Song: mergedInfo["Song"],
+            Difficulty: mergedInfo["Difficulty"],
+            Coins: mergedInfo["Coins"],
+            Length: mergedInfo["Length"],
+            "Upload Time": mergedInfo["Upload Time"],
+            "Update Time": mergedInfo["Update Time"],
+            Objects: mergedInfo["Objects"],
+            "Level Version": mergedInfo["Level Version"],
+            "Game Version": mergedInfo["Game Version"],
+            Downloads: mergedInfo["Downloads"],
+            Likes: mergedInfo["Likes"]
+        };
+
+        // Send the modified level information as JSON response
+        res.json(modifiedInfo);
     } catch (error) {
         // Handle any errors
         console.error('Error fetching level information:', error.message);
@@ -35,7 +72,9 @@ function extractLevelInfo(data) {
     while ((match = regex.exec(data)) !== null) {
         const key = match[1].trim();
         const value = match[2].trim();
-        info[key] = value;
+        if (key !== 'SHOWING RESULT FOR' && key !== 'Rated by') {
+            info[key] = value.replace(/\*+/g, '');
+        }
     }
     return info;
 }

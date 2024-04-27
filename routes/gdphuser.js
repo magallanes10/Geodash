@@ -6,7 +6,6 @@ router.get('/player', async (req, res) => {
     try {
         const user = req.query.user;
         const userAgent = 'Mozilla/5.0';
- // User-Agent header to mimic Mozilla browser
 
         // Make GET request to the external API
         const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/playerStatsBot.php?player=${user}`, {
@@ -30,16 +29,20 @@ router.get('/player', async (req, res) => {
 // Function to extract specific information from the response
 function extractPlayerInfo(data) {
     const info = {};
-    const regex = /\*\*([^:]+):\*\*\s*([^*]+)/g;
-    let match;
-    while ((match = regex.exec(data)) !== null) {
-        const key = match[1].trim();
-        const value = match[2].trim();
-        // Ignore lines containing only hyphens
-        if (value !== '------------------------------------') {
-            info[key] = value;
+    const lines = data.split('\n');
+    const regex = /\*\*([^:]+):\*\*\s*([^*]+)/;
+
+    lines.forEach(line => {
+        if (!line.includes('------------------------------------') && line.trim() !== '') {
+            const match = line.match(regex);
+            if (match) {
+                const key = match[1].trim();
+                const value = match[2].trim();
+                info[key] = value;
+            }
         }
-    }
+    });
+
     return info;
 }
 
