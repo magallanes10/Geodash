@@ -14,19 +14,18 @@ router.get('/player', async (req, res) => {
             }
         });
 
-        // Extract specific information from the response
+        
         const playerInfo = extractPlayerInfo(response.data);
 
-        // Send the player information as JSON response
         res.json(playerInfo);
     } catch (error) {
-        // Handle any errors
+        
         console.error('Error fetching player information:', error.message);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// Function to extract specific information from the response
+
 function extractPlayerInfo(data) {
     const info = {};
     const lines = data.split('\n');

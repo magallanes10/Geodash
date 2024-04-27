@@ -3,42 +3,32 @@ const axios = require('axios');
 const router = express.Router();
 
 router.get('/whorated', async (req, res) => {
-    try {
-        const levelId = req.query.id;
-        const userAgent = 'Mozilla/5.0';
+  try {
+    const levelId = req.query.id;
+    const userAgent = 'Mozilla/5.0';
 
-        // Make GET request to the external API
-        const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/whoRatedBot.php?level=${levelId}`, {
-            headers: {
-                'User-Agent': userAgent
-            }
-        });
+    const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/whoRatedBot.php?level=${levelId}`, {
+      headers: {
+        'User-Agent': userAgent
+      }
+    });
 
-        // Extract specific information from the response
-        const whoRated = extractWhoRated(response.data);
+    const whoRated = response.data.trim();
 
-        // Send the who rated information as JSON response
-        res.json({
-            levelID: levelId,
-            WhoRated: whoRated
-        });
-    } catch (error) {
-        // Handle any errors
-        console.error('Error fetching who rated information:', error.message);
-        res.status(500).send('Internal Server Error');
-    }
+
+    const jsonResponse = {
+      levelID: levelId,
+      WhoRated: whoRated
+    };
+
+    
+    res.json(jsonResponse);
+
+  } catch (error) {
+    
+    console.error('Error fetching who rated information:', error.message);
+    res.status(500).send('Internal Server Error');
+  }
 });
-
-// Function to extract specific information from the response
-function extractWhoRated(data) {
-    // Extract the name of the rater
-    const regex = /(\b[A-Z][a-z]* [A-Z][a-z]*\b) did!/g;
-    const match = regex.exec(data);
-    if (match) {
-        return match[1];
-    } else {
-        return 'No one has rated this level yet.';
-    }
-}
 
 module.exports = router;

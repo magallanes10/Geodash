@@ -8,20 +8,17 @@ router.get('/levelinfo', async (req, res) => {
         const level = req.query.level;
         const userAgent = 'Mozilla/5.0';
 
-        // Make GET request to the external API
         const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/levelSearchBot.php?str=${level}`, {
             headers: {
                 'User-Agent': userAgent
             }
         });
 
-        // Parse HTML response using Cheerio
         const $ = cheerio.load(response.data);
 
-        // Extract name field
+        
         const name = $('**').filter((index, element) => $(element).text().includes('NAME')).text().split(':')[1]?.trim().replace(/\*/g, '');
 
-        // Extract specific information from the response using Cheerio
         const levelInfo = {};
         $('**').each((index, element) => {
             const key = $(element).text().split(':')[0].trim();
@@ -31,13 +28,11 @@ router.get('/levelinfo', async (req, res) => {
             }
         });
 
-        // Extract additional information using the extractLevelInfo function
         const additionalInfo = extractLevelInfo(response.data);
 
-        // Merge the two sets of information
         const mergedInfo = { ...levelInfo, ...additionalInfo };
 
-        // Adjust the JSON format
+        
         const modifiedInfo = {
             name: name,
             ID: mergedInfo["ID"],
@@ -55,16 +50,15 @@ router.get('/levelinfo', async (req, res) => {
             Likes: mergedInfo["Likes"]
         };
 
-        // Send the modified level information as JSON response
         res.json(modifiedInfo);
     } catch (error) {
-        // Handle any errors
+        
         console.error('Error fetching level information:', error.message);
         res.status(500).send('Internal Server Error');
     }
 });
 
-// Function to extract specific information from the response
+
 function extractLevelInfo(data) {
     const info = {};
     const regex = /\*\*([^:]+):\*\*\s*([^*]+)/g;
