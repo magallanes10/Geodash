@@ -8,7 +8,7 @@ router.get('/levelinfo', async (req, res) => {
         const level = req.query.level;
         const userAgent = 'Mozilla/5.0';
 
-        const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/levelSearchBot.php?str=${level}`, {
+        const response = await axios.get(`https://geodash.click/tools/bot/levelSearchBot.php?str=${level}`, {
             headers: {
                 'User-Agent': userAgent
             }
