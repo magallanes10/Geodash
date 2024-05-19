@@ -7,7 +7,7 @@ router.get('/whorated', async (req, res) => {
     const levelId = req.query.id;
     const userAgent = 'Mozilla/5.0';
 
-    const response = await axios.get(`https://gdph.ps.fhgdps.com/tools/bot/whoRatedBot.php?level=${levelId}`, {
+    const response = await axios.get(`https://geodash.click/tools/bot/whoRatedBot.php?level=${levelId}`, {
       headers: {
         'User-Agent': userAgent
       }
