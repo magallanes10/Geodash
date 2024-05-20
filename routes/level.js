@@ -1,63 +1,81 @@
 const express = require('express');
-const axios = require('axios');
+const https = require('https');
 const cheerio = require('cheerio');
 const router = express.Router();
 
-router.get('/levelinfo', async (req, res) => {
+router.get('/levelinfo', (req, res) => {
     try {
         const level = req.query.level;
+        const link = req.query.link;
         const userAgent = 'Mozilla/5.0';
 
-        const response = await axios.get(`https://geodash.click/tools/bot/levelSearchBot.php?str=${level}`, {
-            headers: {
-                'User-Agent': userAgent
-            }
+        if (!level || !link) {
+            return res.status(400).send('Missing level or link parameter');
+        }
+
+        const url = `${link}/tools/bot/levelSearchBot.php?str=${level}`;
+
+        // Make GET request to the external API using native https module
+        https.get(url, { headers: { 'User-Agent': userAgent } }, (response) => {
+            let data = '';
+
+            // Collect the data chunks
+            response.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            // When the whole response is received, process it
+            response.on('end', () => {
+                const $ = cheerio.load(data);
+
+                // Extract and clean the name
+                let name = $('**').filter((index, element) => $(element).text().includes('NAME')).text().split(':')[1]?.trim().replace(/\*/g, '');
+                if (name) {
+                    // Remove the unwanted '\nID' part
+                    name = name.replace(/\nID$/, '');
+                }
+
+                const levelInfo = {};
+                $('**').each((index, element) => {
+                    const key = $(element).text().split(':')[0].trim();
+                    const value = $(element).text().split(':')[1]?.trim().replace(/\*/g, '');
+                    if (key && value && key !== 'SHOWING RESULT FOR' && key !== 'Rated by' && key !== 'OBJECTS') {
+                        levelInfo[key] = value;
+                    }
+                });
+
+                const additionalInfo = extractLevelInfo(data);
+
+                const mergedInfo = { ...levelInfo, ...additionalInfo };
+
+                const modifiedInfo = {
+                    name: name,
+                    ID: mergedInfo["ID"],
+                    Author: mergedInfo["Author"],
+                    Song: mergedInfo["Song"],
+                    Difficulty: mergedInfo["Difficulty"],
+                    Coins: mergedInfo["Coins"],
+                    Length: mergedInfo["Length"],
+                    "Upload Time": mergedInfo["Upload Time"],
+                    "Update Time": mergedInfo["Update Time"],
+                    Objects: mergedInfo["Objects"],
+                    "Level Version": mergedInfo["Level Version"],
+                    "Game Version": mergedInfo["Game Version"],
+                    Downloads: mergedInfo["Downloads"],
+                    Likes: mergedInfo["Likes"]
+                };
+
+                res.json(modifiedInfo);
+            });
+        }).on('error', (error) => {
+            console.error('Error fetching level information:', error.message);
+            res.status(500).send('Internal Server Error');
         });
-
-        const $ = cheerio.load(response.data);
-
-        
-        const name = $('**').filter((index, element) => $(element).text().includes('NAME')).text().split(':')[1]?.trim().replace(/\*/g, '');
-
-        const levelInfo = {};
-        $('**').each((index, element) => {
-            const key = $(element).text().split(':')[0].trim();
-            const value = $(element).text().split(':')[1]?.trim().replace(/\*/g, '');
-            if (key && value && key !== 'SHOWING RESULT FOR' && key !== 'Rated by' && key !== 'OBJECTS') {
-                levelInfo[key] = value;
-            }
-        });
-
-        const additionalInfo = extractLevelInfo(response.data);
-
-        const mergedInfo = { ...levelInfo, ...additionalInfo };
-
-        
-        const modifiedInfo = {
-            name: name,
-            ID: mergedInfo["ID"],
-            Author: mergedInfo["Author"],
-            Song: mergedInfo["Song"],
-            Difficulty: mergedInfo["Difficulty"],
-            Coins: mergedInfo["Coins"],
-            Length: mergedInfo["Length"],
-            "Upload Time": mergedInfo["Upload Time"],
-            "Update Time": mergedInfo["Update Time"],
-            Objects: mergedInfo["Objects"],
-            "Level Version": mergedInfo["Level Version"],
-            "Game Version": mergedInfo["Game Version"],
-            Downloads: mergedInfo["Downloads"],
-            Likes: mergedInfo["Likes"]
-        };
-
-        res.json(modifiedInfo);
     } catch (error) {
-        
-        console.error('Error fetching level information:', error.message);
+        console.error('Unexpected error:', error.message);
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 function extractLevelInfo(data) {
     const info = {};

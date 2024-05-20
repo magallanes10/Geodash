@@ -1,32 +1,46 @@
 const express = require('express');
-const axios = require('axios');
+const https = require('https');
 const router = express.Router();
 
-router.get('/whorated', async (req, res) => {
+router.get('/wr', (req, res) => {
   try {
-    const levelId = req.query.id;
+    const id = req.query.id;
+    const link = req.query.link;
     const userAgent = 'Mozilla/5.0';
 
-    const response = await axios.get(`https://geodash.click/tools/bot/whoRatedBot.php?level=${levelId}`, {
-      headers: {
-        'User-Agent': userAgent
-      }
+    if (!id || !link) {
+      return res.status(400).send('Missing levelId or link parameter');
+    }
+
+    const url = `${link}/tools/bot/whoRatedBot.php?level=${id}`;
+
+
+    https.get(url, { headers: { 'User-Agent': userAgent } }, (response) => {
+      let data = '';
+
+
+      
+      response.on('data', (chunk) => {
+        data += chunk;
+      });
+
+
+      response.on('end', () => {
+        const whoRated = data.trim();
+
+        const jsonResponse = {
+          id: id,
+          WhoRated: whoRated
+        };
+
+        res.json(jsonResponse);
+      });
+    }).on('error', (error) => {
+      console.error('Error fetching who rated information:', error.message);
+      res.status(500).send('Internal Server Error');
     });
-
-    const whoRated = response.data.trim();
-
-
-    const jsonResponse = {
-      levelID: levelId,
-      WhoRated: whoRated
-    };
-
-    
-    res.json(jsonResponse);
-
   } catch (error) {
-    
-    console.error('Error fetching who rated information:', error.message);
+    console.error('Unexpected error:', error.message);
     res.status(500).send('Internal Server Error');
   }
 });
